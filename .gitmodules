@@ -1,0 +1,9 @@
+[submodule "guy/my_ps"]
+	path = guy/my_ps
+	url = https://guy70@bitbucket.org/guy70/my_ps.git
+[submodule "guy/do_not_sleep/ex1"]
+	path = guy/do_not_sleep/ex1
+	url = https://guy70@bitbucket.org/guy70/do_not_sleep.git
+[submodule "guy/do_not_sleep/ex2"]
+	path = guy/do_not_sleep/ex2
+	url = https://guy70@bitbucket.org/guy70/do_not_sleep.git
