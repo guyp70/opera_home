@@ -3,11 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <dirent.h>
 
 #define EXE_PATH_STRING "/proc/%d/exe"
 #define STAT_PATH_STRING "/proc/%d/stat"
 #define CMD_PATH_STRING "/proc/%d/cmdline"
+
 int_array_t getProcessIdList() {
     DIR *directory;
     int_array_t pidList;
@@ -20,7 +22,7 @@ int_array_t getProcessIdList() {
             if (atoi(file->d_name)) {
                 pidList.data[counter++] = atoi(file->d_name);
             }
-        file = readdir(directory);
+            file = readdir(directory);
         }
         pidList.length = counter;
         closedir(directory);
@@ -51,6 +53,7 @@ void getProcessCommand(process_t *process) {
     int copiedLength = 0;
     if (!cmdData) {
         fprintf(stderr, "error allocating memory.");
+        exit(ENOMEM);
     }
     sprintf(cmdFileName, CMD_PATH_STRING, process->pid);
     FILE *fdCmdLine = fopen(cmdFileName, "r");
@@ -73,7 +76,7 @@ void getProcessCommand(process_t *process) {
 void getProcessPath(process_t *process) {
     char *binaryFile;
     char realPath[PATH_MAX + 1];
-    sprintf(binaryFile, EXE_PATH_STRING , process->pid);
+    sprintf(binaryFile, EXE_PATH_STRING, process->pid);
     ssize_t read_link_successfully = readlink(binaryFile, realPath, PATH_MAX);
     if (read_link_successfully != -1) {
         strcpy(process->path, realPath);

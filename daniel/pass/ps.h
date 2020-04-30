@@ -17,15 +17,16 @@
  */
 typedef struct __process_t {
     char name[500];
-    int pid;
+    pid_t pid;
     char command[MAX_COMMAND];
     char path[PATH_MAX];
 } process_t;
 
-typedef  struct  __int_array {
+typedef struct __int_array {
     int length;
     pid_t data[MAX_PID];
 } int_array_t;
+
 /**
  * The function gets a pid as an argument and returns info about a certain process.
  * @param process a process to get the info about
