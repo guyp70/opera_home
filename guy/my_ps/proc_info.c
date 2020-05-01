@@ -58,7 +58,7 @@ size_t get_proc_file_contents(const unsigned int proc_id, const char *file_name,
     size_t bytes_read = 0;
     char *file_path;
     file_path = (char *) malloc(PATH_MAX);
-    sprintf(file_path, "/proc/%d/%s", proc_id, file_name);
+    sprintf(file_path, "%s/%d/%s", PROC_DIR_PATH, proc_id, file_name);
     bytes_read = read_proc_fs_file(file_path, file_contents, false);
     if (!bytes_read) {
         if (DEBUG) {
@@ -85,7 +85,7 @@ unsigned int init_proc_info(proc_info_t *pi, const unsigned int pid) {
     pi->name = (char *) malloc(MAX_PROC_FS_FILE_SIZE);
     pi->cmd_line = (char *) malloc(MAX_PROC_FS_FILE_SIZE);
     pi->exe_path = (char *) malloc(MAX_PROC_FS_FILE_SIZE);
-    if (NULL == pi->name && NULL == pi->cmd_line && NULL == pi->exe_path) {
+    if (NULL == pi->name || NULL == pi->cmd_line || NULL == pi->exe_path) {
         printf("An Error has occurred while allocating memory.");
         return ERROR_WHILE_ALLOCATING_MEMORY;
     }
@@ -94,16 +94,18 @@ unsigned int init_proc_info(proc_info_t *pi, const unsigned int pid) {
     if (!bytes_read) {
         if (DEBUG) {
             printf("An Error has occurred while extracting proc %d comm name.\n", pid);
+            return ERROR_WHILE_GETTING_COMM;
         }
-        pi->name = strcpy(pi->name, UNKNOWN_STR); //return ERROR_WHILE_GETTING_COMM;
+        strcpy(pi->name, UNKNOWN_STR); //return ERROR_WHILE_GETTING_COMM;
     }
     (pi->name)[bytes_read - 1] = '\0';
     bytes_read = get_proc_file_contents(pid, "cmdline", (pi->cmd_line));
     if (!bytes_read) {
         if (DEBUG) {
             printf("An Error has occurred while extracting proc %d cmd.\n", pid);
+            return ERROR_WHILE_GETTING_CMD;
         }
-        pi->cmd_line = strcpy(pi->cmd_line, UNKNOWN_STR); //return ERROR_WHILE_GETTING_CMD;
+        strcpy(pi->cmd_line, UNKNOWN_STR); //return ERROR_WHILE_GETTING_CMD;
     } else {
         // The cmd line is kept as several strings. One for each arg.
         // We therefor have to turn the separate strings into one continuous one.
@@ -117,8 +119,9 @@ unsigned int init_proc_info(proc_info_t *pi, const unsigned int pid) {
     if (!bytes_read) {
         if (DEBUG) {
             printf("An Error has occurred while extracting proc %d exe.\n", pid);
+            return ERROR_WHILE_GETTING_EXE_PATH;
         }
-        pi->exe_path = strcpy(pi->exe_path, UNKNOWN_STR); //return ERROR_WHILE_GETTING_EXE_PATH;
+        strcpy(pi->exe_path, UNKNOWN_STR); //return ERROR_WHILE_GETTING_EXE_PATH;
     }
     return 0;
 }

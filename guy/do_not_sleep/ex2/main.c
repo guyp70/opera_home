@@ -5,7 +5,7 @@
 #include <signal.h>
 #include <sys/select.h>
 #include <libgen.h>
-#include "proc_info.h"
+#include "my_ps/proc_info.h"
 
 #define TIMEOUT_INTERVAL (1)
 #define ERROR_DATA_OF_INCOMPATIBLE_SIZE (1)

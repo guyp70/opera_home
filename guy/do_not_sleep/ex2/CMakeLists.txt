@@ -3,4 +3,6 @@ project(do_not_sleep C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(do_not_sleep main.c proc_info.h proc_info.c)
+add_subdirectory(my_ps)
+
+add_executable(do_not_sleep main.c my_ps/proc_info.h my_ps/proc_info.c)

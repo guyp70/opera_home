@@ -1,7 +1,10 @@
 #include <stdio.h>
-#include "proc_info.h"
 #include <stdbool.h>
 #include <dirent.h>
+#include "proc_info.h"
+
+#define ERROR_WHILE_PARSING_DIRENT (10)
+#define ERROR_EXPLORING_PROC (11)
 
 /*
 Return 1 if the string contains only digits (0-9). 0 Otherwise.
@@ -9,8 +12,8 @@ Return 1 if the string contains only digits (0-9). 0 Otherwise.
 */
 bool str_is_digit(const char *s) {
     int i = 0;
-    while ('\0' != s[i]) {
-        if (!isdigit(s[i++])) {
+    for (i = 0; '\0' != s[i]; ++i) {
+        if (!isdigit(s[i])) {
             return false;
         }
     }
@@ -36,12 +39,14 @@ int main() {
             if (1 != sscanf(dir_entry->d_name, "%d", &pid)) {
                 if (DEBUG) {
                     printf("An Error has occurred while parsing: %s.\n\n", dir_entry->d_name);
+                    return ERROR_WHILE_PARSING_DIRENT;
                 }
-                continue;  //return ERROR_WHILE_PARSING_DIRENT;
+                continue;
             }
             if (init_proc_info(&pi, pid)) {
                 if (DEBUG) {
                     printf("An Error has occurred while exploring proc %s.\n\n", dir_entry->d_name);
+                    return ERROR_EXPLORING_PROC;
                 }
                 continue;  //return (int) err;
             }
