@@ -9,10 +9,11 @@
  * Copies the file's content in a buffer. Built to work with the proc fs.
  * path [IN] -> The file's path.
  * file_contents [OUT] -> buffer to which we copy the file's contents.
+ * max_read_size [IN] -> Maximum size of data to read from file.
  * dereference_symlinks [IN] -> If true, read the file the symlink point to rather than the link file itself.
 * RETURN -> Number of bytes read.
  */
-size_t read_proc_fs_file(const char *path, char *file_contents, bool dereference_symlinks) {
+size_t read_proc_fs_file(const char *path, char *file_contents, size_t max_read_size, bool dereference_symlinks) {
     size_t bytes_read = 0;
     struct stat file_stat;
 
@@ -40,7 +41,7 @@ size_t read_proc_fs_file(const char *path, char *file_contents, bool dereference
         // Since it turns out we cant use lseek or stat to find out file size, we will to read
         //bytes_read = fread((void*)file_contents, MAX_PROC_FS_FILE_SIZE, 1, fd);
         for (bytes_read = 0;
-             bytes_read < MAX_PROC_FS_FILE_SIZE && EOF != (file_contents[bytes_read] = fgetc(fd)); bytes_read++);
+             bytes_read < max_read_size && EOF != (file_contents[bytes_read] = (char)fgetc(fd)); bytes_read++);
     }
     fclose(fd);
     return bytes_read;
@@ -52,14 +53,15 @@ size_t read_proc_fs_file(const char *path, char *file_contents, bool dereference
  * proc_id [IN] -> Process ID.
  * file_name [IN] -> The name of the file to read. (relative to a /proc/x/ dir.
  * file_contents [OUT] -> buffer to which we copy the file's contents.
+ * max_read_size [IN] -> Maximum size of data to read from file.
 * RETURN -> Number of bytes read.
  */
-size_t get_proc_file_contents(const unsigned int proc_id, const char *file_name, char *file_contents) {
+size_t get_proc_file_contents(const unsigned int proc_id, const char *file_name, char *file_contents, size_t  max_read_size) {
     size_t bytes_read = 0;
     char *file_path;
     file_path = (char *) malloc(PATH_MAX);
     sprintf(file_path, "%s/%d/%s", PROC_DIR_PATH, proc_id, file_name);
-    bytes_read = read_proc_fs_file(file_path, file_contents, false);
+    bytes_read = read_proc_fs_file(file_path, file_contents, max_read_size, false);
     if (!bytes_read) {
         if (DEBUG) {
             printf("An Error has occurred while reading file \"%s\" of proc %d.\n", file_path, proc_id);
@@ -82,15 +84,20 @@ unsigned int init_proc_info(proc_info_t *pi, const unsigned int pid) {
     pi->id = pid;
 
     // Allocate memory buffers for name, command line and exec path.
-    pi->name = (char *) malloc(MAX_PROC_FS_FILE_SIZE);
-    pi->cmd_line = (char *) malloc(MAX_PROC_FS_FILE_SIZE);
-    pi->exe_path = (char *) malloc(MAX_PROC_FS_FILE_SIZE);
+    // (Set last byte to \0 in case the string is longer than MAX_PROC_FS_FILE_SIZE)
+    pi->name = (char *) malloc(MAX_PROC_FS_FILE_SIZE + 1);
+    pi->name[MAX_PROC_FS_FILE_SIZE] = '\0';
+    pi->cmd_line = (char *) malloc(MAX_PROC_FS_FILE_SIZE + 1);
+    pi->cmd_line[MAX_PROC_FS_FILE_SIZE] = '\0';
+    pi->exe_path = (char *) malloc(MAX_PROC_FS_FILE_SIZE + 1);
+    pi->exe_path[MAX_PROC_FS_FILE_SIZE] = '\0';
+
     if (NULL == pi->name || NULL == pi->cmd_line || NULL == pi->exe_path) {
         printf("An Error has occurred while allocating memory.");
         return ERROR_WHILE_ALLOCATING_MEMORY;
     }
 
-    bytes_read = get_proc_file_contents(pid, "comm", (pi->name));
+    bytes_read = get_proc_file_contents(pid, "comm", (pi->name), MAX_PROC_FS_FILE_SIZE);
     if (!bytes_read) {
         if (DEBUG) {
             printf("An Error has occurred while extracting proc %d comm name.\n", pid);
@@ -99,7 +106,7 @@ unsigned int init_proc_info(proc_info_t *pi, const unsigned int pid) {
         strcpy(pi->name, UNKNOWN_STR); //return ERROR_WHILE_GETTING_COMM;
     }
     (pi->name)[bytes_read - 1] = '\0';
-    bytes_read = get_proc_file_contents(pid, "cmdline", (pi->cmd_line));
+    bytes_read = get_proc_file_contents(pid, "cmdline", (pi->cmd_line), MAX_PROC_FS_FILE_SIZE);
     if (!bytes_read) {
         if (DEBUG) {
             printf("An Error has occurred while extracting proc %d cmd.\n", pid);
@@ -115,7 +122,7 @@ unsigned int init_proc_info(proc_info_t *pi, const unsigned int pid) {
             }
         }
     }
-    bytes_read = get_proc_file_contents(pid, "exe", (pi->exe_path));
+    bytes_read = get_proc_file_contents(pid, "exe", (pi->exe_path), MAX_PROC_FS_FILE_SIZE);
     if (!bytes_read) {
         if (DEBUG) {
             printf("An Error has occurred while extracting proc %d exe.\n", pid);
